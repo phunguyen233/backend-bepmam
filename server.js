@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+const shopsRoutes = require('./routes/shops');
 const usersRoutes = require('./routes/users');
 const customersRoutes = require('./routes/customers');
 const unitsRoutes = require('./routes/units');
@@ -19,12 +20,14 @@ const inventoryLogsRoutes = require('./routes/inventoryLogs');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Bếp Măm backend is running' });
+  res.json({ message: 'Bếp Măm backend is running', status: 'ok' });
 });
 
+app.use('/api/shops', shopsRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/customers', customersRoutes);
 app.use('/api/units', unitsRoutes);

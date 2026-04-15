@@ -2,7 +2,21 @@ const db = require('../config/db');
 
 exports.getAllCategories = async (req, res, next) => {
   try {
-    const result = await db.query('SELECT * FROM categories ORDER BY id');
+    const { shopId } = req;
+    const { shop_id } = req.query;
+    const currentShopId = shopId || shop_id;
+
+    let query;
+    let values = [];
+
+    if (currentShopId) {
+      query = 'SELECT * FROM categories WHERE shop_id = $1 ORDER BY id';
+      values.push(currentShopId);
+    } else {
+      query = 'SELECT * FROM categories ORDER BY id';
+    }
+
+    const result = await db.query(query, values);
     res.json(result.rows);
   } catch (error) {
     next(error);
@@ -12,7 +26,19 @@ exports.getAllCategories = async (req, res, next) => {
 exports.getCategoryById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await db.query('SELECT * FROM categories WHERE id = $1', [id]);
+    const { shopId } = req;
+
+    let query;
+    let values = [id];
+
+    if (shopId) {
+      query = 'SELECT * FROM categories WHERE id = $1 AND shop_id = $2';
+      values.push(shopId);
+    } else {
+      query = 'SELECT * FROM categories WHERE id = $1';
+    }
+
+    const result = await db.query(query, values);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Category not found' });
     }
@@ -25,7 +51,19 @@ exports.getCategoryById = async (req, res, next) => {
 exports.createCategory = async (req, res, next) => {
   try {
     const { name } = req.body;
-    const result = await db.query('INSERT INTO categories (name) VALUES ($1) RETURNING *', [name]);
+    const { user } = req;
+    const { shopId } = req;
+
+    if (!name) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+
+    const shop_id = user?.shop_id || shopId || null;
+
+    const result = await db.query(
+      'INSERT INTO categories (name, shop_id) VALUES ($1, $2) RETURNING *',
+      [name, shop_id]
+    );
     res.status(201).json(result.rows[0]);
   } catch (error) {
     next(error);
@@ -36,7 +74,19 @@ exports.updateCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name } = req.body;
-    const result = await db.query('UPDATE categories SET name = $1 WHERE id = $2 RETURNING *', [name, id]);
+    const { shopId } = req;
+
+    let query;
+    let values = [name, id];
+
+    if (shopId) {
+      query = 'UPDATE categories SET name = $1 WHERE id = $2 AND shop_id = $3 RETURNING *';
+      values.push(shopId);
+    } else {
+      query = 'UPDATE categories SET name = $1 WHERE id = $2 RETURNING *';
+    }
+
+    const result = await db.query(query, values);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Category not found' });
     }
@@ -49,7 +99,19 @@ exports.updateCategory = async (req, res, next) => {
 exports.deleteCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const result = await db.query('DELETE FROM categories WHERE id = $1 RETURNING id', [id]);
+    const { shopId } = req;
+
+    let query;
+    let values = [id];
+
+    if (shopId) {
+      query = 'DELETE FROM categories WHERE id = $1 AND shop_id = $2 RETURNING id';
+      values.push(shopId);
+    } else {
+      query = 'DELETE FROM categories WHERE id = $1 RETURNING id';
+    }
+
+    const result = await db.query(query, values);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Category not found' });
     }
