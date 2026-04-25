@@ -4,6 +4,8 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
+const { verifyAdminToken, verifyToken } = require('./middleware/authMiddleware');
+
 const shopsRoutes = require('./routes/shops');
 const usersRoutes = require('./routes/users');
 const customersRoutes = require('./routes/customers');
@@ -27,19 +29,19 @@ app.get('/', (req, res) => {
   res.json({ message: 'Bếp Măm backend is running', status: 'ok' });
 });
 
-app.use('/api/shops', shopsRoutes);
+app.use('/api/shops', verifyAdminToken, shopsRoutes);
 app.use('/api/users', usersRoutes);
-app.use('/api/customers', customersRoutes);
+app.use('/api/customers', verifyAdminToken, customersRoutes);
 app.use('/api/units', unitsRoutes);
-app.use('/api/categories', categoriesRoutes);
-app.use('/api/products', productsRoutes);
-app.use('/api/orders', ordersRoutes);
-app.use('/api/order-items', orderItemsRoutes);
-app.use('/api/ingredients', ingredientsRoutes);
-app.use('/api/recipes', recipesRoutes);
-app.use('/api/recipe-ingredients', recipeIngredientsRoutes);
-app.use('/api/inventory-imports', inventoryImportsRoutes);
-app.use('/api/inventory-logs', inventoryLogsRoutes);
+app.use('/api/categories', verifyAdminToken, categoriesRoutes);
+app.use('/api/products', verifyAdminToken, productsRoutes);
+app.use('/api/orders', verifyAdminToken, ordersRoutes);
+app.use('/api/order-items', verifyAdminToken, orderItemsRoutes);
+app.use('/api/ingredients', verifyAdminToken, ingredientsRoutes);
+app.use('/api/recipes', verifyAdminToken, recipesRoutes);
+app.use('/api/recipe-ingredients', verifyAdminToken, recipeIngredientsRoutes);
+app.use('/api/inventory-imports', verifyAdminToken, inventoryImportsRoutes);
+app.use('/api/inventory-logs', verifyAdminToken, inventoryLogsRoutes);
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Resource not found' });

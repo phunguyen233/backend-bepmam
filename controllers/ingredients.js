@@ -2,28 +2,20 @@ const db = require('../config/db');
 
 exports.getAllIngredients = async (req, res, next) => {
   try {
-    const { shopId } = req;
-    const { shop_id } = req.query;
-    const currentShopId = shopId || shop_id;
+    const shop_id = req.user.shop_id;
 
-    let query;
-    let values = [];
+    const query = `SELECT i.*, u.name AS unit_name, u.symbol AS unit_symbol,
+                   COALESCE(
+                     (SELECT SUM(ii.quantity * ii.import_price) / NULLIF(SUM(ii.quantity), 0)
+                      FROM inventory_imports ii
+                      WHERE ii.ingredient_id = i.id AND ii.shop_id = i.shop_id), 0
+                   ) AS avg_price
+                   FROM ingredients i
+                   LEFT JOIN units u ON i.unit_id = u.id
+                   WHERE i.shop_id = $1
+                   ORDER BY i.id`;
 
-    if (currentShopId) {
-      query = `SELECT i.*, u.name AS unit_name, u.symbol AS unit_symbol
-               FROM ingredients i
-               LEFT JOIN units u ON i.unit_id = u.id
-               WHERE i.shop_id = $1
-               ORDER BY i.id`;
-      values.push(currentShopId);
-    } else {
-      query = `SELECT i.*, u.name AS unit_name, u.symbol AS unit_symbol
-               FROM ingredients i
-               LEFT JOIN units u ON i.unit_id = u.id
-               ORDER BY i.id`;
-    }
-
-    const result = await db.query(query, values);
+    const result = await db.query(query, [shop_id]);
     res.json(result.rows);
   } catch (error) {
     next(error);
@@ -33,25 +25,14 @@ exports.getAllIngredients = async (req, res, next) => {
 exports.getIngredientById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { shopId } = req;
+    const shop_id = req.user.shop_id;
 
-    let query;
-    let values = [id];
+    const query = `SELECT i.*, u.name AS unit_name, u.symbol AS unit_symbol
+                   FROM ingredients i
+                   LEFT JOIN units u ON i.unit_id = u.id
+                   WHERE i.id = $1 AND i.shop_id = $2`;
 
-    if (shopId) {
-      query = `SELECT i.*, u.name AS unit_name, u.symbol AS unit_symbol
-               FROM ingredients i
-               LEFT JOIN units u ON i.unit_id = u.id
-               WHERE i.id = $1 AND i.shop_id = $2`;
-      values.push(shopId);
-    } else {
-      query = `SELECT i.*, u.name AS unit_name, u.symbol AS unit_symbol
-               FROM ingredients i
-               LEFT JOIN units u ON i.unit_id = u.id
-               WHERE i.id = $1`;
-    }
-
-    const result = await db.query(query, values);
+    const result = await db.query(query, [id, shop_id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Ingredient not found' });
     }
@@ -64,14 +45,11 @@ exports.getIngredientById = async (req, res, next) => {
 exports.createIngredient = async (req, res, next) => {
   try {
     const { name, unit_id, stock_quantity } = req.body;
-    const { user } = req;
-    const { shopId } = req;
+    const shop_id = req.user.shop_id;
 
     if (!name) {
       return res.status(400).json({ error: 'Name is required' });
     }
-
-    const shop_id = user?.shop_id || shopId || null;
 
     const result = await db.query(
       'INSERT INTO ingredients (name, unit_id, stock_quantity, shop_id) VALUES ($1, $2, $3, $4) RETURNING *',
@@ -87,19 +65,10 @@ exports.updateIngredient = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, unit_id, stock_quantity } = req.body;
-    const { shopId } = req;
+    const shop_id = req.user.shop_id;
 
-    let query;
-    let values = [name, unit_id, stock_quantity, id];
-
-    if (shopId) {
-      query = 'UPDATE ingredients SET name = $1, unit_id = $2, stock_quantity = $3 WHERE id = $4 AND shop_id = $5 RETURNING *';
-      values.push(shopId);
-    } else {
-      query = 'UPDATE ingredients SET name = $1, unit_id = $2, stock_quantity = $3 WHERE id = $4 RETURNING *';
-    }
-
-    const result = await db.query(query, values);
+    const query = 'UPDATE ingredients SET name = $1, unit_id = $2, stock_quantity = $3 WHERE id = $4 AND shop_id = $5 RETURNING *';
+    const result = await db.query(query, [name, unit_id, stock_quantity || 0, id, shop_id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Ingredient not found' });
     }
@@ -112,19 +81,10 @@ exports.updateIngredient = async (req, res, next) => {
 exports.deleteIngredient = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { shopId } = req;
+    const shop_id = req.user.shop_id;
 
-    let query;
-    let values = [id];
-
-    if (shopId) {
-      query = 'DELETE FROM ingredients WHERE id = $1 AND shop_id = $2 RETURNING id';
-      values.push(shopId);
-    } else {
-      query = 'DELETE FROM ingredients WHERE id = $1 RETURNING id';
-    }
-
-    const result = await db.query(query, values);
+    const query = 'DELETE FROM ingredients WHERE id = $1 AND shop_id = $2 RETURNING id';
+    const result = await db.query(query, [id, shop_id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Ingredient not found' });
     }

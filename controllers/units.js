@@ -24,10 +24,10 @@ exports.getUnitById = async (req, res, next) => {
 
 exports.createUnit = async (req, res, next) => {
   try {
-    const { name, symbol, base_unit, conversion_factor } = req.body;
+    const { name, symbol, type, base_unit_id, conversion_factor } = req.body;
     const result = await db.query(
-      'INSERT INTO units (name, symbol, base_unit, conversion_factor) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, symbol, base_unit, conversion_factor]
+      'INSERT INTO units (name, symbol, type, base_unit_id, conversion_factor) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [name, symbol, type, base_unit_id || null, conversion_factor]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -38,10 +38,10 @@ exports.createUnit = async (req, res, next) => {
 exports.updateUnit = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, symbol, base_unit, conversion_factor } = req.body;
+    const { name, symbol, type, base_unit_id, conversion_factor } = req.body;
     const result = await db.query(
-      'UPDATE units SET name = $1, symbol = $2, base_unit = $3, conversion_factor = $4 WHERE id = $5 RETURNING *',
-      [name, symbol, base_unit, conversion_factor, id]
+      'UPDATE units SET name = $1, symbol = $2, type = $3, base_unit_id = $4, conversion_factor = $5 WHERE id = $6 RETURNING *',
+      [name, symbol, type, base_unit_id || null, conversion_factor, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Unit not found' });

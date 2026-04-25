@@ -3,7 +3,7 @@ const db = require('../config/db');
 exports.getAllOrderItems = async (req, res, next) => {
   try {
     const result = await db.query(
-      `SELECT oi.*, p.name AS product_name, o.user_id AS order_user_id
+      `SELECT oi.*, p.name AS product_name, o.customer_id AS order_customer_id
        FROM order_items oi
        LEFT JOIN products p ON oi.product_id = p.id
        LEFT JOIN orders o ON oi.order_id = o.id
